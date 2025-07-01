@@ -23,7 +23,10 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-name, authentication_status, username = authenticator.login("Iniciar sesión", "sidebar")
+with st.container():
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        name, authentication_status, username = authenticator.login("Iniciar sesión", "main")
 
 # Configuración de página
 st.set_page_config(page_title="App de Taller Vehicular", layout="wide")
