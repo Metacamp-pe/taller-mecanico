@@ -118,7 +118,7 @@ elif auth_status:
     elif username == "supervisor":
         st.subheader("Aprobación Final y PDF")
         data = pd.DataFrame(sheet.get_all_records())
-        placas = data[(data["Diagnóstico"] != "") & (data["Aprobación"] == "")]["Placa"].tolist()
+        placas = sorted(data[(data["Diagnóstico"] != "") & (data["Estado"] == "")]["Placa"].unique().tolist())
         if placas:
             selected = st.selectbox("Selecciona placa para aprobar", placas)
             registro = data[data["Placa"] == selected].iloc[0]
