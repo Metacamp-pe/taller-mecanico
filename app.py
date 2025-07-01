@@ -9,9 +9,9 @@ import streamlit_authenticator as stauth
 
 # --- Configurar autenticación ---
 users = {
-    "recepcion": {"name": "Recepción", "password": "1234"},
-    "mecanico": {"name": "Mecánico", "password": "1234"},
-    "supervisor": {"name": "Supervisor", "password": "1234"},
+    "recepcion": {"name": "recepcion", "password": "1234"},
+    "mecanico": {"name": "mecanico", "password": "1234"},
+    "supervisor": {"name": "supervisor", "password": "1234"},
 }
 
 authenticator = stauth.Authenticate(
