@@ -9,13 +9,15 @@ import streamlit_authenticator as stauth
 
 # --- Configurar autenticación ---
 users = {
-    "recepcion": {"name": "recepcion", "password": "1234"},
-    "mecanico": {"name": "mecanico", "password": "1234"},
-    "supervisor": {"name": "supervisor", "password": "1234"},
+    "usernames": {
+        "recepcion": {"name": "recepcion", "password": "1234"},
+        "mecanico": {"name": "mecanico", "password": "1234"},
+        "supervisor": {"name": "supervisor", "password": "1234"},
+    }
 }
 
 authenticator = stauth.Authenticate(
-    {"usernames": users},
+    users,
     "taller_auth",
     "abcdef",
     cookie_expiry_days=1
@@ -40,7 +42,7 @@ if authentication_status:
 
     data = pd.DataFrame(sheet.get_all_records())
 
-    if name == "Recepción":
+    if username == "recepcion":
         st.header("Recepción del vehículo")
         with st.form("recepcion_form"):
             cliente = st.text_input("Nombre del cliente")
@@ -53,7 +55,7 @@ if authentication_status:
             nueva_fila = [
                 nuevo_id, str(fecha), username, cliente, "", "", "", "",
                 placa, "", "", "", "", "", "", "", "", "", "", "", "",
-                "", "", "", "", "", "", "", "", "", "", "", "", "", ""
+                "", "", "", "", "", "", "", "", "", "", "", ""
             ]
             sheet.append_row(nueva_fila)
             st.success("✅ Registro guardado correctamente.")
@@ -62,7 +64,7 @@ if authentication_status:
         with st.expander("📋 Ver historial de tickets recibidos"):
             st.dataframe(data[data["Recepcionista"] == username])
 
-    elif name == "Mecánico":
+    elif username == "mecanico":
         st.header("Diagnóstico del vehículo")
         pendientes = data[(data["Diagnóstico"] == "") & (data["Estado"] == "")]
         if pendientes.empty:
@@ -91,7 +93,7 @@ if authentication_status:
         with st.expander("📋 Historial de diagnósticos enviados"):
             st.dataframe(data[data["Mecánico"] == username])
 
-    elif name == "Supervisor":
+    elif username == "supervisor":
         st.header("Aprobación Final y PDF")
         pendientes = data[(data["Diagnóstico"] != "") & (data["Estado"] == "")]
         if pendientes.empty:
