@@ -1,14 +1,10 @@
 import streamlit as st
-st.title("🚀 App de Prueba")
-st.write("Si ves esto, Streamlit funciona correctamente.")
-
-"""import streamlit_authenticator as stauth
-from yaml import safe_load
+import streamlit_authenticator as stauth
 from pathlib import Path
+import yaml
 import pandas as pd
-st.title("¡Hola Luis!")
-st.write("Tu app de taller está corriendo correctamente 🚗")
-# Configurar login con usuarios y roles
+
+# --- CONFIGURAR USUARIOS Y ROLES ---
 config = {
     'credentials': {
         'usernames': {
@@ -23,7 +19,7 @@ config = {
             'supervisor': {
                 'name': 'Supervisor',
                 'password': stauth.Hasher(['1234']).generate()[0]
-            },
+            }
         }
     },
     'cookie': {
@@ -36,7 +32,7 @@ config = {
     }
 }
 
-# Crear autenticador
+# --- AUTENTICADOR ---
 authenticator = stauth.Authenticate(
     config['credentials'],
     config['cookie']['name'],
@@ -44,28 +40,43 @@ authenticator = stauth.Authenticate(
     config['cookie']['expiry_days']
 )
 
-# Login
+# --- LOGIN ---
 name, authentication_status, username = authenticator.login('Iniciar sesión', 'main')
 
 if authentication_status:
     authenticator.logout('Cerrar sesión', 'sidebar')
     st.sidebar.write(f"👤 Usuario: {name}")
 
-    # Mostrar contenido según el usuario
+    st.title("🔧 Sistema de Gestión - Taller Mecánico")
+
+    # --- FLUJO SEGÚN ROL ---
     if username == 'recepcion':
-        st.title("🚗 Registro de Vehículos - Recepción")
-        st.write("Aquí se registran los vehículos que llegan al taller.")
+        st.subheader("📋 Registro de Ingreso de Vehículos")
+        with st.form("form_ingreso"):
+            nombre_cliente = st.text_input("Nombre del cliente")
+            placa = st.text_input("Placa del vehículo")
+            descripcion = st.text_area("Descripción del problema")
+            enviado = st.form_submit_button("Registrar ingreso")
+            if enviado:
+                st.success(f"Vehículo con placa {placa} registrado correctamente.")
 
     elif username == 'mecanico':
-        st.title("🔧 Diagnóstico del Mecánico")
-        st.write("Registra el diagnóstico y los repuestos necesarios.")
+        st.subheader("🔧 Diagnóstico Mecánico")
+        with st.form("form_diagnostico"):
+            placa = st.text_input("Placa del vehículo")
+            diagnostico = st.text_area("Diagnóstico realizado")
+            enviado = st.form_submit_button("Guardar diagnóstico")
+            if enviado:
+                st.success(f"Diagnóstico para {placa} guardado correctamente.")
 
     elif username == 'supervisor':
-        st.title("✅ Aprobación del Supervisor")
-        st.write("Revisa los diagnósticos y da el visto bueno final.")
+        st.subheader("✅ Revisión Final y Aprobación")
+        with st.form("form_supervisor"):
+            placa = st.text_input("Placa del vehículo")
+            visto_bueno = st.radio("¿Aprobar entrega?", ("Sí", "No"))
+            enviado = st.form_submit_button("Registrar decisión")
+            if enviado:
+                st.success(f"Decisión registrada para el vehículo {placa}.")
+else:
+    st.warning("Por favor, ingresa tus credenciales correctamente.")
 
-elif authentication_status is False:
-    st.error('Usuario o contraseña incorrectos')
-elif authentication_status is None:
-    st.warning('Por favor, ingresa tus credenciales')
-"""
