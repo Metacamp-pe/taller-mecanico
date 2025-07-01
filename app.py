@@ -7,15 +7,15 @@ from io import BytesIO
 import json
 import streamlit_authenticator as stauth
 
-# Configuración de autenticación
+# --- Configurar autenticación ---
 users = {
     "recepcion": {"name": "Recepción", "password": "1234"},
-    "mecanico": {"name": "Mecánico", "password": "5678"},
-    "supervisor": {"name": "Supervisor", "password": "abcd"},
+    "mecanico": {"name": "Mecánico", "password": "1234"},
+    "supervisor": {"name": "Supervisor", "password": "1234"},
 }
 
 authenticator = stauth.Authenticate(
-    users,
+    {"usernames": users},
     "taller_auth",
     "abcdef",
     cookie_expiry_days=1
@@ -33,7 +33,7 @@ if authentication_status:
 
     # Autenticación con Google Sheets
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    credentials_info = st.secrets["gcp_service_account"]
+    credentials_info = st.secrets["GOOGLE_SHEETS_CREDENTIALS"]
     credentials = ServiceAccountCredentials.from_json_keyfile_dict(dict(credentials_info), scope)
     client = gspread.authorize(credentials)
     sheet = client.open_by_key("1-8VG4ICQ-RtN43Xn4PNtDq8fQsCmffUjFXrXkUzfbps").sheet1
@@ -51,7 +51,9 @@ if authentication_status:
         if enviado:
             nuevo_id = len(data) + 1 if not data.empty else 1
             nueva_fila = [
-                nuevo_id, str(fecha), username, cliente, "", "", "", "", placa, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
+                nuevo_id, str(fecha), username, cliente, "", "", "", "",
+                placa, "", "", "", "", "", "", "", "", "", "", "", "",
+                "", "", "", "", "", "", "", "", "", "", "", "", "", ""
             ]
             sheet.append_row(nueva_fila)
             st.success("✅ Registro guardado correctamente.")
