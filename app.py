@@ -32,7 +32,7 @@ authenticator = stauth.Authenticate(
 )
 
 # --- FUNCIÓN PARA CONECTAR A GOOGLE SHEETS ---
-def connect_to_gsheet(sheet_name):
+def connect_to_gsheet(sheet_id):
     scope = [
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive"
@@ -40,7 +40,7 @@ def connect_to_gsheet(sheet_name):
     creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-    sheet = client.open(sheet_name).sheet1
+    sheet = client.open_by_key(sheet_id).sheet1
     return sheet
 
 # --- LOGIN ---
@@ -58,7 +58,10 @@ elif authentication_status:
 
     st.title("🚗 App de Taller Vehicular")
 
-    sheet = client.open_by_key("1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE").sheet1
+    # ID de tu Google Sheet desde la URL:
+    # https://docs.google.com/spreadsheets/d/**AQUI_VA_EL_ID**/edit
+    SHEET_ID = "1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE"
+    sheet = connect_to_gsheet(SHEET_ID)
 
     # --- FORMULARIO DIFERENCIADO POR ROL ---
     if username == "recepcion":
