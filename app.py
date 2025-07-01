@@ -4,18 +4,26 @@ from fpdf import FPDF
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from io import BytesIO
-import json
 import streamlit_authenticator as stauth
 
-# Configuración de página (debe ir al inicio)
+# Configuración de página
 st.set_page_config(page_title="App de Taller Vehicular", layout="wide")
 
-# --- Configurar autenticación ---
+# --- Autenticación segura ---
 users = {
     "usernames": {
-        "recepcion": {"name": "recepcion", "password": "1234"},
-        "mecanico": {"name": "mecanico", "password": "1234"},
-        "supervisor": {"name": "supervisor", "password": "1234"},
+        "recepcion": {
+            "name": "recepcion",
+            "password": "$2b$12$nYYGLsCKSwT6Mbk3/vnRKuPTvNdhlDBbD0QaUMtxxMXosOfxD1Rqi"
+        },
+        "mecanico": {
+            "name": "mecanico",
+            "password": "$2b$12$nYYGLsCKSwT6Mbk3/vnRKuPTvNdhlDBbD0QaUMtxxMXosOfxD1Rqi"
+        },
+        "supervisor": {
+            "name": "supervisor",
+            "password": "$2b$12$nYYGLsCKSwT6Mbk3/vnRKuPTvNdhlDBbD0QaUMtxxMXosOfxD1Rqi"
+        },
     }
 }
 
