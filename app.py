@@ -58,7 +58,7 @@ elif authentication_status:
 
     st.title("🚗 App de Taller Vehicular")
 
-    sheet = connect_to_gsheet("Registro de taller - Mecanico")  # Nombre de tu Google Sheet
+    sheet = connect_to_gsheet("formato_registro_taller") # Nombre de tu Google Sheet
 
     # --- FORMULARIO DIFERENCIADO POR ROL ---
     if username == "recepcion":
