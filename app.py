@@ -5,36 +5,42 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from io import BytesIO
 import json
+import streamlit_authenticator as stauth
 
-# Autenticación con Google Sheets
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-credentials_info = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
-credentials = ServiceAccountCredentials.from_json_keyfile_dict(dict(credentials_info), scope)
-client = gspread.authorize(credentials)
-sheet = client.open_by_key("1-8VG4ICQ-RtN43Xn4PNtDq8fQsCmffUjFXrXkUzfbps").sheet1
+# Configuración de autenticación
+users = {
+    "recepcion": {"name": "Recepción", "password": "1234"},
+    "mecanico": {"name": "Mecánico", "password": "5678"},
+    "supervisor": {"name": "Supervisor", "password": "abcd"},
+}
 
+authenticator = stauth.Authenticate(
+    users,
+    "taller_auth",
+    "abcdef",
+    cookie_expiry_days=1
+)
+
+name, authentication_status, username = authenticator.login("Iniciar sesión", "sidebar")
+
+# Configuración de página
 st.set_page_config(page_title="App de Taller Vehicular", layout="wide")
 st.title("🚗 App de Taller Vehicular")
 
-# Login simple
-st.sidebar.subheader("Iniciar sesión")
-usuario = st.sidebar.text_input("Usuario")
-rol = st.sidebar.selectbox("Rol", ["Recepción", "Mecánico", "Supervisor"])
-if st.sidebar.button("Iniciar sesión"):
-    st.session_state.usuario = usuario
-    st.session_state.rol = rol
-    st.session_state.login = True
+# Verificar si el usuario inició sesión
+if authentication_status:
+    st.sidebar.success(f"Bienvenido, {name} 👋")
 
-# Simulación de sesión activa
-if "login" not in st.session_state:
-    st.session_state.login = False
-
-if st.session_state.login:
-    st.sidebar.success(f"Bienvenido, {st.session_state.rol} 👋")
+    # Autenticación con Google Sheets
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    credentials_info = st.secrets["gcp_service_account"]
+    credentials = ServiceAccountCredentials.from_json_keyfile_dict(dict(credentials_info), scope)
+    client = gspread.authorize(credentials)
+    sheet = client.open_by_key("1-8VG4ICQ-RtN43Xn4PNtDq8fQsCmffUjFXrXkUzfbps").sheet1
 
     data = pd.DataFrame(sheet.get_all_records())
 
-    if st.session_state.rol == "Recepción":
+    if name == "Recepción":
         st.header("Recepción del vehículo")
         with st.form("recepcion_form"):
             cliente = st.text_input("Nombre del cliente")
@@ -45,16 +51,16 @@ if st.session_state.login:
         if enviado:
             nuevo_id = len(data) + 1 if not data.empty else 1
             nueva_fila = [
-                nuevo_id, str(fecha), st.session_state.usuario, cliente, "", "", "", "", placa, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
+                nuevo_id, str(fecha), username, cliente, "", "", "", "", placa, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
             ]
             sheet.append_row(nueva_fila)
             st.success("✅ Registro guardado correctamente.")
             st.experimental_rerun()
 
         with st.expander("📋 Ver historial de tickets recibidos"):
-            st.dataframe(data[data["Recepcionista"] == st.session_state.usuario])
+            st.dataframe(data[data["Recepcionista"] == username])
 
-    elif st.session_state.rol == "Mecánico":
+    elif name == "Mecánico":
         st.header("Diagnóstico del vehículo")
         pendientes = data[(data["Diagnóstico"] == "") & (data["Estado"] == "")]
         if pendientes.empty:
@@ -76,14 +82,14 @@ if st.session_state.login:
                 sheet.update_cell(idx, data.columns.get_loc("MO_Cantidad") + 1, mo_cant)
                 sheet.update_cell(idx, data.columns.get_loc("MO_Precio_Unit") + 1, mo_precio)
                 sheet.update_cell(idx, data.columns.get_loc("MO_Precio_Total") + 1, mo_cant * mo_precio)
-                sheet.update_cell(idx, data.columns.get_loc("Mecánico") + 1, st.session_state.usuario)
+                sheet.update_cell(idx, data.columns.get_loc("Mecánico") + 1, username)
                 st.success("✅ Diagnóstico guardado correctamente.")
                 st.experimental_rerun()
 
         with st.expander("📋 Historial de diagnósticos enviados"):
-            st.dataframe(data[data["Mecánico"] == st.session_state.usuario])
+            st.dataframe(data[data["Mecánico"] == username])
 
-    elif st.session_state.rol == "Supervisor":
+    elif name == "Supervisor":
         st.header("Aprobación Final y PDF")
         pendientes = data[(data["Diagnóstico"] != "") & (data["Estado"] == "")]
         if pendientes.empty:
@@ -95,7 +101,7 @@ if st.session_state.login:
             st.json(ticket.to_dict())
 
             with st.form("aprobacion_form"):
-                supervisor = st.text_input("Supervisor", st.session_state.usuario)
+                supervisor = st.text_input("Supervisor", username)
                 comentario = st.text_area("Comentarios")
                 aprobado = st.checkbox("Aprobar")
                 enviar = st.form_submit_button("Finalizar")
@@ -126,6 +132,7 @@ if st.session_state.login:
                 st.success("✅ Aprobación finalizada y PDF generado.")
 
         with st.expander("📋 Historial de aprobaciones"):
-            st.dataframe(data[data["Supervisor"] == st.session_state.usuario])
+            st.dataframe(data[data["Supervisor"] == username])
 
-
+else:
+    st.warning("Por favor, inicie sesión con su usuario y contraseña.")
