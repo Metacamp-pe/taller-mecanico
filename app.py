@@ -1,148 +1,128 @@
 import streamlit as st
-import streamlit_authenticator as stauth
 import pandas as pd
-import gspread
-import json
-from oauth2client.service_account import ServiceAccountCredentials
 from fpdf import FPDF
-import tempfile
-import os
-from datetime import datetime
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+from io import BytesIO
 
-# --- CONFIGURAR USUARIOS Y CONTRASEÑAS ---
-names = ["Recepción", "Mecánico", "Supervisor"]
-usernames = ["recepcion", "mecanico", "supervisor"]
-passwords = ["1234", "1234", "1234"]
+# Autenticación con Google Sheets
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+credentials = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+client = gspread.authorize(credentials)
+sheet = client.open_by_key("1-8VG4ICQ-RtN43Xn4PNtDq8fQsCmffUjFXrXkUzfbps").sheet1
 
-hashed_passwords = stauth.Hasher(passwords).generate()
+st.set_page_config(page_title="App de Taller Vehicular", layout="wide")
+st.title("🚗 App de Taller Vehicular")
 
-credentials = {
-    "usernames": {
-        usernames[i]: {
-            "name": names[i],
-            "password": hashed_passwords[i]
-        } for i in range(len(usernames))
-    }
-}
+# Login simple
+st.sidebar.subheader("Iniciar sesión")
+usuario = st.sidebar.text_input("Usuario")
+rol = st.sidebar.selectbox("Rol", ["Recepción", "Mecánico", "Supervisor"])
+if st.sidebar.button("Iniciar sesión"):
+    st.session_state.usuario = usuario
+    st.session_state.rol = rol
+    st.session_state.login = True
 
-cookie = {
-    "name": "taller_cookie",
-    "key": "clave_secreta",
-    "expiry_days": 1
-}
+# Simulación de sesión activa
+if "login" not in st.session_state:
+    st.session_state.login = False
 
-authenticator = stauth.Authenticate(
-    credentials, cookie['name'], cookie['key'], cookie['expiry_days']
-)
+if st.session_state.login:
+    st.sidebar.success(f"Bienvenido, {st.session_state.rol} 👋")
 
-# --- CONEXIONES ---
-def connect_to_sheet(sheet_id):
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
-    return client.open_by_key(sheet_id)
+    data = pd.DataFrame(sheet.get_all_records())
 
-# --- DATOS ---
-TICKETS_SHEET_ID = "1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE"
-INVENTARIO_SHEET_ID = "1-8VG4ICQ-RtN43Xn4PNtDq8fQsCmffUjFXrXkUzfbps"
-
-# --- LOGIN ---
-name, auth_status, username = authenticator.login("Iniciar sesión", "main")
-
-if auth_status == False:
-    st.error("Usuario o contraseña incorrectos")
-elif auth_status == None:
-    st.warning("Por favor, ingresa tus credenciales")
-elif auth_status:
-    authenticator.logout("Cerrar sesión", "sidebar")
-    st.sidebar.success(f"Bienvenido, {name} \U0001F44B")
-    st.title("🚗 App de Taller Vehicular")
-
-    sheet = connect_to_sheet(TICKETS_SHEET_ID).sheet1
-    inventory_sheet = connect_to_sheet(INVENTARIO_SHEET_ID).sheet1
-
-    # Cargar inventario en DataFrame
-    inventario = pd.DataFrame(inventory_sheet.get_all_records())
-
-    if username == "recepcion":
-        st.subheader("Recepción del vehículo")
-        with st.form("form_recepcion"):
-            cliente = st.text_input("Cliente")
-            dni = st.text_input("RUC/DNI")
-            direccion = st.text_input("Dirección")
-            correo = st.text_input("Correo")
-            telefono = st.text_input("Teléfono")
-            contactar = st.text_input("Contactar a")
-            marca = st.text_input("Marca")
-            modelo = st.text_input("Modelo")
-            placa = st.text_input("Placa")
-            color = st.text_input("Color")
+    if st.session_state.rol == "Recepción":
+        st.header("Recepción del vehículo")
+        with st.form("recepcion_form"):
+            cliente = st.text_input("Nombre del cliente")
+            placa = st.text_input("Placa del vehículo")
             fecha = st.date_input("Fecha de ingreso")
-            km = st.text_input("Kilometraje")
             motivo = st.text_area("Motivo del ingreso")
-            submit = st.form_submit_button("Guardar")
-            if submit:
-                nuevo = [cliente, dni, direccion, correo, telefono, contactar, marca, modelo,
-                         placa, color, str(fecha), km, motivo, "", "", "", ""]
-                sheet.append_row(nuevo)
-                st.success("✅ Registro guardado")
+            enviado = st.form_submit_button("Guardar")
+        if enviado:
+            nuevo_id = len(data) + 1 if not data.empty else 1
+            nueva_fila = [
+                nuevo_id, str(fecha), st.session_state.usuario, cliente, "", "", "", "", placa, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
+            ]
+            sheet.append_row(nueva_fila)
+            st.success("✅ Registro guardado correctamente.")
+            st.experimental_rerun()
 
-    elif username == "mecanico":
-        st.subheader("Diagnóstico y Repuestos")
-        data = pd.DataFrame(sheet.get_all_records())
-        placas = data[data["Diagnóstico"] == ""]["Placa"].tolist()
-        if placas:
-            selected = st.selectbox("Selecciona placa", placas)
-            with st.form("form_mecanico"):
+        with st.expander("📋 Ver historial de tickets recibidos"):
+            st.dataframe(data[data["Recepcionista"] == st.session_state.usuario])
+
+    elif st.session_state.rol == "Mecánico":
+        st.header("Diagnóstico del vehículo")
+        pendientes = data[(data["Diagnóstico"] == "") & (data["Estado"] == "")]
+        if pendientes.empty:
+            st.info("No hay tickets pendientes para diagnóstico.")
+        else:
+            placa_sel = st.selectbox("Selecciona la placa", pendientes["Placa"].unique())
+            with st.form("diagnostico_form"):
                 diagnostico = st.text_area("Diagnóstico")
-                repuestos_usados = st.multiselect("Repuestos utilizados", inventario["Producto"].unique())
-                cantidades = {}
-                for rep in repuestos_usados:
-                    cantidades[rep] = st.number_input(f"Cantidad de {rep}", min_value=1, value=1)
-                submit = st.form_submit_button("Guardar")
-                if submit:
-                    idx = data[data["Placa"] == selected].index[0] + 2
-                    sheet.update_cell(idx, 14, diagnostico)
-                    usados = ", ".join([f"{rep} ({cantidades[rep]})" for rep in repuestos_usados])
-                    sheet.update_cell(idx, 15, usados)
-                    for rep in repuestos_usados:
-                        row = inventario[inventario["Producto"] == rep].index[0] + 2
-                        col_stock = inventario.columns.get_loc("Stock Inicial") + 1
-                        nuevo_stock = int(inventario.loc[row-2, "Stock Inicial"]) - cantidades[rep]
-                        inventory_sheet.update_cell(row, col_stock, nuevo_stock)
-                    st.success("✅ Diagnóstico y repuestos guardados")
+                obs = st.text_area("Observaciones del mecánico")
+                mo = st.text_input("Descripción mano de obra")
+                mo_cant = st.number_input("Cantidad MO", min_value=0, value=1)
+                mo_precio = st.number_input("Precio Unitario MO", min_value=0.0, value=0.0)
+                enviado = st.form_submit_button("Guardar diagnóstico")
+            if enviado:
+                idx = data[data["Placa"] == placa_sel].index[0] + 2
+                sheet.update_cell(idx, data.columns.get_loc("Diagnóstico") + 1, diagnostico)
+                sheet.update_cell(idx, data.columns.get_loc("Observaciones_Mecánico") + 1, obs)
+                sheet.update_cell(idx, data.columns.get_loc("MO_Descripción") + 1, mo)
+                sheet.update_cell(idx, data.columns.get_loc("MO_Cantidad") + 1, mo_cant)
+                sheet.update_cell(idx, data.columns.get_loc("MO_Precio_Unit") + 1, mo_precio)
+                sheet.update_cell(idx, data.columns.get_loc("MO_Precio_Total") + 1, mo_cant * mo_precio)
+                sheet.update_cell(idx, data.columns.get_loc("Mecánico") + 1, st.session_state.usuario)
+                st.success("✅ Diagnóstico guardado correctamente.")
+                st.experimental_rerun()
+
+        with st.expander("📋 Historial de diagnósticos enviados"):
+            st.dataframe(data[data["Mecánico"] == st.session_state.usuario])
+
+    elif st.session_state.rol == "Supervisor":
+        st.header("Aprobación Final y PDF")
+        pendientes = data[(data["Diagnóstico"] != "") & (data["Estado"] == "")]
+        if pendientes.empty:
+            st.info("No hay tickets pendientes para aprobación.")
         else:
-            st.info("No hay vehículos pendientes por diagnosticar")
+            selected = st.selectbox("Selecciona la placa", pendientes["Placa"].unique())
+            ticket = pendientes[pendientes["Placa"] == selected].iloc[0]
+            st.write("### Resumen del ticket")
+            st.json(ticket.to_dict())
 
-    elif username == "supervisor":
-        st.subheader("Aprobación Final y PDF")
-        data = pd.DataFrame(sheet.get_all_records())
-        placas = sorted(data[(data["Diagnóstico"] != "") & (data["Estado"] == "")]["Placa"].unique().tolist())
-        if placas:
-            selected = st.selectbox("Selecciona placa para aprobar", placas)
-            registro = data[data["Placa"] == selected].iloc[0]
-            with st.form("form_supervisor"):
-                aprobacion = st.radio("¿Todo conforme?", ["Sí", "No"])
-                observaciones = st.text_area("Observaciones")
-                generar = st.form_submit_button("Finalizar y generar PDF")
-                if generar:
-                    idx = data[data["Placa"] == selected].index[0] + 2
-                    sheet.update_cell(idx, 16, aprobacion)
-                    sheet.update_cell(idx, 17, observaciones)
+            with st.form("aprobacion_form"):
+                supervisor = st.text_input("Supervisor", st.session_state.usuario)
+                comentario = st.text_area("Comentarios")
+                aprobado = st.checkbox("Aprobar")
+                enviar = st.form_submit_button("Finalizar y generar PDF")
 
-                    pdf = FPDF()
-                    pdf.add_page()
-                    pdf.set_font("Arial", size=12)
-                    for campo in registro.index:
-                        pdf.cell(200, 10, txt=f"{campo}: {registro[campo]}", ln=True)
-                    pdf.cell(200, 10, txt=f"Aprobación: {aprobacion}", ln=True)
-                    pdf.cell(200, 10, txt=f"Observaciones: {observaciones}", ln=True)
+            if enviar:
+                idx = data[data["Placa"] == selected].index[0] + 2
+                sheet.update_cell(idx, data.columns.get_loc("Supervisor") + 1, supervisor)
+                sheet.update_cell(idx, data.columns.get_loc("Comentarios_Supervisor") + 1, comentario)
+                sheet.update_cell(idx, data.columns.get_loc("Estado") + 1, "Aprobado" if aprobado else "Rechazado")
 
-                    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-                    pdf.output(tmp.name)
-                    with open(tmp.name, "rb") as f:
-                        st.download_button("🔖 Descargar PDF", f, file_name=f"Ticket_{selected}.pdf")
-                    os.unlink(tmp.name)
-        else:
-            st.info("No hay vehículos pendientes de aprobación")
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Arial", size=12)
+                pdf.cell(200, 10, txt="Resumen de Servicio", ln=True, align="C")
+                for k, v in ticket.items():
+                    pdf.cell(200, 10, txt=f"{k}: {v}", ln=True)
+
+                pdf_buffer = BytesIO()
+                pdf.output(pdf_buffer)
+                pdf_buffer.seek(0)
+
+                st.download_button(
+                    "🔖 Descargar PDF",
+                    pdf_buffer,
+                    file_name=f"Ticket_{selected}.pdf",
+                    mime="application/pdf"
+                )
+                st.success("✅ Aprobación finalizada y PDF generado.")
+
+        with st.expander("📋 Historial de aprobaciones"):
+            st.dataframe(data[data["Supervisor"] == st.session_state.usuario])
+
