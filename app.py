@@ -3,9 +3,10 @@ import streamlit_authenticator as stauth
 import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import json
+from pathlib import Path
+import datetime
 
-# --- AUTENTICACIÓN ---
+# --- CONFIGURACIÓN DE USUARIOS ---
 names = ["Recepción", "Mecánico", "Supervisor"]
 usernames = ["recepcion", "mecanico", "supervisor"]
 passwords = ["1234", "1234", "1234"]
@@ -26,6 +27,15 @@ authenticator = stauth.Authenticate(credentials, cookie['name'], cookie['key'], 
 # --- LOGIN ---
 name, authentication_status, username = authenticator.login("Iniciar sesión", "main")
 
+# --- CONEXIÓN A GOOGLE SHEETS ---
+def connect_to_gsheet(sheet_name):
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+    client = gspread.authorize(creds)
+    sheet = client.open(sheet_name).sheet1
+    return sheet
+
+# --- INTERFAZ DESPUÉS DEL LOGIN ---
 if authentication_status == False:
     st.error("Usuario o contraseña incorrectos")
 elif authentication_status == None:
@@ -35,39 +45,49 @@ elif authentication_status:
     st.sidebar.success(f"Bienvenido, {name} 👋")
 
     st.title("🚗 App de Taller Vehicular")
-    st.write("Esta es la página principal del sistema de taller.")
-    st.info("Puedes personalizar este contenido según el rol del usuario.")
+    sheet = connect_to_gsheet("Registro de taller - Mecanico")  # Nombre exacto de tu Sheet
 
-    # --- CONEXIÓN A GOOGLE SHEETS ---
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
-
-    # ID de la hoja de cálculo (desde st.secrets)
-    sheet_id = st.secrets["GOOGLE_SHEET_ID"]
-    sheet = client.open_by_key(sheet_id).worksheet("Registros")
-
-    # --- EJEMPLO DE GUARDADO ---
     if username == "recepcion":
-        st.subheader("📋 Formulario Recepción")
-
+        st.subheader("📋 Registro de Recepción")
         with st.form("form_recepcion"):
-            ruc_dni = st.text_input("RUC/DNI")
+            ruc = st.text_input("RUC/DNI")
             cliente = st.text_input("Cliente")
-            telefono = st.text_input("Teléfono")
             direccion = st.text_input("Dirección")
             correo = st.text_input("Correo")
+            telefono = st.text_input("Teléfono")
             marca = st.text_input("Marca")
             modelo = st.text_input("Modelo")
             placa = st.text_input("Placa")
-            fecha = st.date_input("Fecha")
-            km = st.number_input("Kilometraje", step=1)
+            fecha = st.date_input("Fecha de ingreso")
+            km = st.text_input("Kilometraje")
+            contacto = st.selectbox("¿Autoriza contacto?", ["Sí", "No"])
+            submit_recepcion = st.form_submit_button("Guardar Recepción")
 
-            submitted = st.form_submit_button("Guardar")
+        if submit_recepcion:
+            fila = [str(datetime.datetime.now()), ruc, cliente, direccion, correo, telefono, marca, modelo, placa, fecha.strftime("%Y-%m-%d"), km, contacto, "", ""]
+            sheet.append_row(fila)
+            st.success("✅ Registro guardado exitosamente")
 
-            if submitted:
-                row = [ruc_dni, cliente, telefono, direccion, correo, marca, modelo, placa, str(fecha), km]
-                sheet.append_row(row)
-                st.success("✅ Registro guardado exitosamente")
+    elif username == "mecanico":
+        st.subheader("🔧 Diagnóstico del Mecánico")
+        with st.form("form_mecanico"):
+            placa = st.text_input("Placa del vehículo")
+            diagnostico = st.text_area("Diagnóstico del vehículo")
+            submit_diag = st.form_submit_button("Guardar Diagnóstico")
 
+        if submit_diag:
+            fila = [str(datetime.datetime.now()), "", "", "", "", "", "", "", placa, "", "", "", diagnostico, ""]
+            sheet.append_row(fila)
+            st.success("✅ Diagnóstico guardado")
+
+    elif username == "supervisor":
+        st.subheader("✅ Revisión del Supervisor")
+        with st.form("form_supervisor"):
+            placa = st.text_input("Placa del vehículo")
+            visto_bueno = st.radio("¿Aprobado?", ["Sí", "No"])
+            submit_sup = st.form_submit_button("Guardar Revisión")
+
+        if submit_sup:
+            fila = [str(datetime.datetime.now()), "", "", "", "", "", "", "", placa, "", "", "", "", visto_bueno]
+            sheet.append_row(fila)
+            st.success("✅ Revisión registrada")
