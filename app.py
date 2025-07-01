@@ -58,7 +58,7 @@ elif authentication_status:
 
     st.title("🚗 App de Taller Vehicular")
 
-    sheet = client.open_by_key("1r1RYTnPQKjgb0aLtB7eXJLtvmJ6kSHPcQFe0NwWzKJ0").sheet1
+    sheet = client.open_by_key("1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE").sheet1
 
     # --- FORMULARIO DIFERENCIADO POR ROL ---
     if username == "recepcion":
