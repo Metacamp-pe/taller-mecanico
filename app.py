@@ -2,17 +2,16 @@ import streamlit as st
 import streamlit_authenticator as stauth
 import pandas as pd
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-from pathlib import Path
-import datetime
 import json
+from oauth2client.service_account import ServiceAccountCredentials
 
-# --- CONFIGURACIÓN DE USUARIOS ---
+# --- CONFIGURAR USUARIOS Y CONTRASEÑAS ---
 names = ["Recepción", "Mecánico", "Supervisor"]
 usernames = ["recepcion", "mecanico", "supervisor"]
-passwords = ["1234", "1234", "1234"]
+passwords = ["1234", "1234", "1234"]  # Reemplaza con contraseñas seguras
 
 hashed_passwords = stauth.Hasher(passwords).generate()
+
 credentials = {
     "usernames": {
         usernames[i]: {
@@ -22,73 +21,80 @@ credentials = {
     }
 }
 
-cookie = {"name": "taller_cookie", "key": "clave_secreta", "expiry_days": 1}
-authenticator = stauth.Authenticate(credentials, cookie['name'], cookie['key'], cookie['expiry_days'])
+cookie = {
+    "name": "taller_cookie",
+    "key": "clave_secreta",
+    "expiry_days": 1
+}
 
-# --- LOGIN ---
-name, authentication_status, username = authenticator.login("Iniciar sesión", "main")
+authenticator = stauth.Authenticate(
+    credentials, cookie['name'], cookie['key'], cookie['expiry_days']
+)
 
-# --- CONEXIÓN A GOOGLE SHEETS ---
+# --- FUNCIÓN PARA CONECTAR A GOOGLE SHEETS ---
 def connect_to_gsheet(sheet_name):
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"]), scope)
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
     sheet = client.open(sheet_name).sheet1
     return sheet
 
-# --- INTERFAZ DESPUÉS DEL LOGIN ---
+# --- LOGIN ---
+name, authentication_status, username = authenticator.login("Iniciar sesión", "main")
+
 if authentication_status == False:
     st.error("Usuario o contraseña incorrectos")
+
 elif authentication_status == None:
     st.warning("Por favor, ingresa tus credenciales")
+
 elif authentication_status:
     authenticator.logout("Cerrar sesión", "sidebar")
     st.sidebar.success(f"Bienvenido, {name} 👋")
 
     st.title("🚗 App de Taller Vehicular")
-    sheet = connect_to_gsheet("Registro de taller - Mecanico")  # Nombre exacto de tu Sheet
 
+    sheet = connect_to_gsheet("Registro de taller - Mecanico")  # Nombre de tu Google Sheet
+
+    # --- FORMULARIO DIFERENCIADO POR ROL ---
     if username == "recepcion":
-        st.subheader("📋 Registro de Recepción")
-        with st.form("form_recepcion"):
-            ruc = st.text_input("RUC/DNI")
-            cliente = st.text_input("Cliente")
-            direccion = st.text_input("Dirección")
-            correo = st.text_input("Correo")
-            telefono = st.text_input("Teléfono")
-            marca = st.text_input("Marca")
-            modelo = st.text_input("Modelo")
-            placa = st.text_input("Placa")
-            fecha = st.date_input("Fecha de ingreso")
-            km = st.text_input("Kilometraje")
-            contacto = st.selectbox("¿Autoriza contacto?", ["Sí", "No"])
-            submit_recepcion = st.form_submit_button("Guardar Recepción")
-
-        if submit_recepcion:
-            fila = [str(datetime.datetime.now()), ruc, cliente, direccion, correo, telefono, marca, modelo, placa, fecha.strftime("%Y-%m-%d"), km, contacto, "", ""]
-            sheet.append_row(fila)
-            st.success("✅ Registro guardado exitosamente")
+        st.subheader("Recepción del vehículo")
+        with st.form("recepcion_form"):
+            cliente = st.text_input("Nombre del cliente")
+            placa = st.text_input("Placa del vehículo")
+            fecha_ingreso = st.date_input("Fecha de ingreso")
+            motivo = st.text_area("Motivo del ingreso")
+            enviado = st.form_submit_button("Guardar")
+            if enviado:
+                datos = [cliente, placa, str(fecha_ingreso), motivo, "Recepción"]
+                sheet.append_row(datos)
+                st.success("✅ Registro guardado en Google Sheets")
 
     elif username == "mecanico":
-        st.subheader("🔧 Diagnóstico del Mecánico")
-        with st.form("form_mecanico"):
+        st.subheader("Diagnóstico del vehículo")
+        with st.form("diagnostico_form"):
             placa = st.text_input("Placa del vehículo")
-            diagnostico = st.text_area("Diagnóstico del vehículo")
-            submit_diag = st.form_submit_button("Guardar Diagnóstico")
-
-        if submit_diag:
-            fila = [str(datetime.datetime.now()), "", "", "", "", "", "", "", placa, "", "", "", diagnostico, ""]
-            sheet.append_row(fila)
-            st.success("✅ Diagnóstico guardado")
+            diagnostico = st.text_area("Diagnóstico técnico")
+            repuestos = st.text_area("Repuestos necesarios")
+            enviado = st.form_submit_button("Guardar")
+            if enviado:
+                datos = ["", placa, "", "", "Mecánico", diagnostico, repuestos]
+                sheet.append_row(datos)
+                st.success("✅ Diagnóstico guardado")
 
     elif username == "supervisor":
-        st.subheader("✅ Revisión del Supervisor")
-        with st.form("form_supervisor"):
+        st.subheader("Aprobación final")
+        with st.form("supervisor_form"):
             placa = st.text_input("Placa del vehículo")
-            visto_bueno = st.radio("¿Aprobado?", ["Sí", "No"])
-            submit_sup = st.form_submit_button("Guardar Revisión")
+            visto_bueno = st.radio("¿Todo conforme?", ["Sí", "No"])
+            observaciones = st.text_area("Observaciones finales")
+            enviado = st.form_submit_button("Guardar")
+            if enviado:
+                datos = ["", placa, "", "", "Supervisor", visto_bueno, observaciones]
+                sheet.append_row(datos)
+                st.success("✅ Supervisión guardada")
 
-        if submit_sup:
-            fila = [str(datetime.datetime.now()), "", "", "", "", "", "", "", placa, "", "", "", "", visto_bueno]
-            sheet.append_row(fila)
-            st.success("✅ Revisión registrada")
