@@ -4,3 +4,4 @@ pandas
 pyyaml
 gspread
 oauth2client
+fpdf
