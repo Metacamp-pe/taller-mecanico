@@ -5,6 +5,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from pathlib import Path
 import datetime
+import json
 
 # --- CONFIGURACIÓN DE USUARIOS ---
 names = ["Recepción", "Mecánico", "Supervisor"]
@@ -30,7 +31,7 @@ name, authentication_status, username = authenticator.login("Iniciar sesión", "
 # --- CONEXIÓN A GOOGLE SHEETS ---
 def connect_to_gsheet(sheet_name):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"]), scope)
     client = gspread.authorize(creds)
     sheet = client.open(sheet_name).sheet1
     return sheet
