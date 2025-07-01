@@ -4,10 +4,12 @@ from fpdf import FPDF
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from io import BytesIO
+import json
 
 # Autenticación con Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-credentials = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+credentials_info = st.secrets["gcp_service_account"]
+credentials = ServiceAccountCredentials.from_json_keyfile_dict(dict(credentials_info), scope)
 client = gspread.authorize(credentials)
 sheet = client.open_by_key("1-8VG4ICQ-RtN43Xn4PNtDq8fQsCmffUjFXrXkUzfbps").sheet1
 
@@ -96,7 +98,7 @@ if st.session_state.login:
                 supervisor = st.text_input("Supervisor", st.session_state.usuario)
                 comentario = st.text_area("Comentarios")
                 aprobado = st.checkbox("Aprobar")
-                enviar = st.form_submit_button("Finalizar y generar PDF")
+                enviar = st.form_submit_button("Finalizar")
 
             if enviar:
                 idx = data[data["Placa"] == selected].index[0] + 2
@@ -125,4 +127,5 @@ if st.session_state.login:
 
         with st.expander("📋 Historial de aprobaciones"):
             st.dataframe(data[data["Supervisor"] == st.session_state.usuario])
+
 
