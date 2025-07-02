@@ -10,22 +10,21 @@ from datetime import datetime
 st.set_page_config(page_title="App de Taller Vehicular", layout="wide")
 
 # --- Login simplificado ---
-if "rol" not in st.session_state:
-    st.title("Iniciar sesión")
-    rol = st.selectbox("Selecciona tu perfil", ["", "recepcion", "mecanico", "supervisor"])
-    password = st.text_input("Contraseña", type="password")
+st.title("Iniciar sesión")
+rol = st.selectbox("Selecciona tu perfil", ["", "recepcion", "mecanico", "supervisor"])
+password = st.text_input("Contraseña", type="password")
 
-    if st.button("Entrar"):
-        if password == "1234" and rol in ["recepcion", "mecanico", "supervisor"]:
-            st.session_state.rol = rol
-            st.rerun()
-        else:
-            st.error("Usuario o contraseña incorrecta")
+if st.button("Entrar"):
+    if password == "1234" and rol in ["recepcion", "mecanico", "supervisor"]:
+        st.session_state.rol = rol
+        st.rerun()
+    else:
+        st.error("Usuario o contraseña incorrecta")
 
 # --- Si ya ha iniciado sesión ---
 if "rol" in st.session_state:
-    st.sidebar.success(f"Sesión iniciada como: {st.session_state.rol}")
-    if st.sidebar.button("Cerrar sesión"):
+    st.success(f"Sesión iniciada como: {st.session_state.rol}")
+    if st.button("Cerrar sesión"):
         del st.session_state.rol
         st.rerun()
 
@@ -36,13 +35,8 @@ if "rol" in st.session_state:
     client = gspread.authorize(credentials)
 
     # Base principal
-    sheet = client.open_by_key("1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE").sheet1
+    sheet = client.open_by_key("1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE").worksheet("Sheet1")
     data = pd.DataFrame(sheet.get_all_records())
-
-    # Inventario
-    sheet_inventario = client.open_by_key("1-8VG4ICQ-RtN43Xn4PNtDq8fQsCmffUjFXrXkUzfbps").worksheet("inventario_prueba")
-    data_inv = pd.DataFrame(sheet_inventario.get_all_records())
-    lubricantes_predef = ["ACEITE DE MOTOR SAE 15W40 (LT)", "REFRIGERANTE", "LÍQUIDO DE FRENOS"]
 
     # --- RECEPCIONISTA ---
     if st.session_state.rol == "recepcion":
@@ -65,7 +59,7 @@ if "rol" in st.session_state:
             nueva_fila = [
                 nuevo_id, datetime.now().strftime("%Y-%m-%d"), "recepcion", cliente, dni_ruc, direccion, telefono,
                 correo, placa, marca, modelo, color, km, "", "", "", "", "", "", "", "", "", "",
-                "", "", "", "", "", "", "", "", "", ""
+                "", "", "", "", "", "", "", "", ""
             ]
             sheet.append_row(nueva_fila)
             st.success("✅ Ticket registrado correctamente.")
@@ -127,3 +121,5 @@ if "rol" in st.session_state:
                 st.success("✅ Ticket cerrado correctamente.")
                 st.rerun()
 
+else:
+    st.info("Por favor, inicia sesión para usar la aplicación.")
