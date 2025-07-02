@@ -125,6 +125,32 @@ if "rol" in st.session_state:
                 sheet.update_cell(idx, data.columns.get_loc("Estado") + 1, estado)
                 st.success("✅ Ticket cerrado correctamente.")
                 st.rerun()
+                
+            # --- Generar PDF ---
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Arial", size=12)
+
+                pdf.cell(200, 10, txt="Resumen del Servicio - Taller Mecánico", ln=True, align="C")
+                pdf.ln(10)
+
+                for key, value in ticket.items():
+                    pdf.cell(0, 10, f"{key}: {value}", ln=True)
+
+                pdf.cell(0, 10, f"Supervisor: supervisor", ln=True)
+                pdf.cell(0, 10, f"Comentario: {comentario}", ln=True)
+                pdf.cell(0, 10, f"Estado final: {estado}", ln=True)
+
+                pdf_output = BytesIO()
+                pdf.output(pdf_output)
+                st.success("✅ Ticket cerrado correctamente.")
+                st.download_button(
+                    label="📄 Descargar PDF del Ticket",
+                    data=pdf_output.getvalue(),
+                    file_name=f"ticket_{ticket['Placa']}.pdf",
+                    mime="application/pdf"
+                )
 
 else:
     st.info("Por favor, inicia sesión para usar la aplicación.")
+
