@@ -32,7 +32,7 @@ if "rol" in st.session_state:
     client = gspread.authorize(credentials)
 
     # Base principal
-    sheet = client.open_by_key("1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE").sheet1
+    sheet = client.open_by_key("1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE").worksheet("formulario_registro")
     data = pd.DataFrame(sheet.get_all_records())
 
     # Inventario
@@ -65,7 +65,7 @@ if "rol" in st.session_state:
             ]
             sheet.append_row(nueva_fila)
             st.success("✅ Ticket registrado correctamente.")
-            st.experimental_rerun()
+            st.rerun()
 
     # --- MECÁNICO ---
     elif st.session_state.rol == "mecanico":
@@ -96,12 +96,32 @@ if "rol" in st.session_state:
                 sheet.update_cell(idx, data.columns.get_loc("MO_Precio_Total") + 1, mo_cant * mo_precio)
                 sheet.update_cell(idx, data.columns.get_loc("Mecánico") + 1, "mecanico")
                 st.success("✅ Diagnóstico guardado correctamente.")
-                st.experimental_rerun()
+                st.rerun()
 
-    # --- SUPERVISOR (en construcción) ---
+    # --- SUPERVISOR ---
     elif st.session_state.rol == "supervisor":
-        st.header("Aprobación y Generación de PDF")
-        st.info("🚧 Módulo del supervisor en desarrollo...")
+        st.header("Aprobación del Servicio")
+        pendientes = data[(data["Diagnóstico"] != "") & (data["Estado"] == "")]
+        if pendientes.empty:
+            st.info("No hay tickets pendientes para aprobación.")
+        else:
+            placa_sel = st.selectbox("Selecciona una placa pendiente", pendientes["Placa"].unique())
+            ticket = pendientes[pendientes["Placa"] == placa_sel].iloc[0]
+            st.write("### Información del ticket")
+            st.json(ticket.to_dict())
+
+            with st.form("form_supervision"):
+                comentario = st.text_area("Comentario del supervisor")
+                estado = st.selectbox("Estado final", ["Aprobado", "Rechazado"])
+                enviar = st.form_submit_button("Finalizar")
+
+            if enviar:
+                idx = data[data["Placa"] == placa_sel].index[0] + 2
+                sheet.update_cell(idx, data.columns.get_loc("Supervisor") + 1, "supervisor")
+                sheet.update_cell(idx, data.columns.get_loc("Comentarios_Supervisor") + 1, comentario)
+                sheet.update_cell(idx, data.columns.get_loc("Estado") + 1, estado)
+                st.success("✅ Ticket cerrado correctamente.")
+                st.rerun()
 
 else:
     st.info("Por favor, inicia sesión para usar la aplicación.")
