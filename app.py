@@ -142,7 +142,7 @@ if "rol" in st.session_state:
                 pdf.cell(0, 10, f"Estado final: {estado}", ln=True)
 
                 pdf_output = BytesIO()
-                pdf.output(pdf_output)
+                pdf.output(pdf_output, 'F')
                 pdf_output.seek(0)
 
                 st.download_button(
