@@ -123,10 +123,10 @@ if "rol" in st.session_state:
                 sheet.update_cell(idx, data.columns.get_loc("Supervisor") + 1, "supervisor")
                 sheet.update_cell(idx, data.columns.get_loc("Comentarios_Supervisor") + 1, comentario)
                 sheet.update_cell(idx, data.columns.get_loc("Estado") + 1, estado)
-                st.success("✅ Ticket cerrado correctamente.")
-                st.rerun()
-                
-            # --- Generar PDF ---
+
+                st.success("✅ Ticket finalizado correctamente. Puedes descargar el PDF abajo.")
+
+                # --- Generar PDF ---
                 pdf = FPDF()
                 pdf.add_page()
                 pdf.set_font("Arial", size=12)
@@ -143,15 +143,14 @@ if "rol" in st.session_state:
 
                 pdf_output = BytesIO()
                 pdf.output(pdf_output)
-                pdf_output.seek(0)  # ← Esto es clave para que funcione correctamente
+                pdf_output.seek(0)
 
-                st.success("✅ Ticket cerrado correctamente.")
                 st.download_button(
                     label="📄 Descargar PDF del Ticket",
                     data=pdf_output,
                     file_name=f"ticket_{ticket['Placa']}.pdf",
                     mime="application/pdf"
-                )
+    )
 
 else:
     st.info("Por favor, inicia sesión para usar la aplicación.")
