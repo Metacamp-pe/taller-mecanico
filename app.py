@@ -10,16 +10,17 @@ from datetime import datetime
 st.set_page_config(page_title="App de Taller Vehicular", layout="wide")
 
 # --- Login simplificado ---
-st.title("Iniciar sesión")
-rol = st.selectbox("Selecciona tu perfil", ["", "recepcion", "mecanico", "supervisor"])
-password = st.text_input("Contraseña", type="password")
+if "rol" not in st.session_state:
+    st.title("Iniciar sesión")
+    rol = st.selectbox("Selecciona tu perfil", ["", "recepcion", "mecanico", "supervisor"])
+    password = st.text_input("Contraseña", type="password")
 
-if st.button("Entrar"):
-    if password == "1234" and rol in ["recepcion", "mecanico", "supervisor"]:
-        st.session_state.rol = rol
-        st.rerun()
-    else:
-        st.error("Usuario o contraseña incorrecta")
+    if st.button("Entrar"):
+        if password == "1234" and rol in ["recepcion", "mecanico", "supervisor"]:
+            st.session_state.rol = rol
+            st.rerun()
+        else:
+            st.error("Usuario o contraseña incorrecta")
 
 # --- Si ya ha iniciado sesión ---
 if "rol" in st.session_state:
