@@ -11,36 +11,13 @@ from datetime import datetime
 st.set_page_config(page_title="App de Taller Vehicular", layout="wide")
 
 # --- Autenticación de usuarios ---
-config = {
-    "credentials": {
-        "usernames": {
-            "recepcion": {
-                "name": "Recepcionista",
-                "password": "1234"
-            },
-            "mecanico": {
-                "name": "Mecánico",
-                "password": "1234"
-            },
-            "supervisor": {
-                "name": "Supervisor",
-                "password": "1234"
-            }
-        }
-    },
-    "cookie": {
-        "expiry_days": 1,
-        "key": "abcdef",
-        "name": "app_cookie"
-    },
-    "preauthorized": {}
-}
+names = ["Recepcionista", "Mecánico", "Supervisor"]
+usernames = ["recepcion", "mecanico", "supervisor"]
+passwords = ["1234", "1234", "1234"]
 
 authenticator = stauth.Authenticate(
-    config['credentials'],
-    config['cookie']['name'],
-    config['cookie']['key'],
-    config['cookie']['expiry_days']
+    names, usernames, passwords,
+    "app_cookie", "abcdef", cookie_expiry_days=1
 )
 
 name, authentication_status, username = authenticator.login("Iniciar sesión", "main")
