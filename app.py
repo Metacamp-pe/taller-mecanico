@@ -11,7 +11,7 @@ from datetime import datetime
 st.set_page_config(page_title="App de Taller Vehicular", layout="wide")
 
 # --- Autenticación de usuarios ---
-users = {
+credentials = {
     "usernames": {
         "recepcion": {"name": "recepcion", "password": "1234"},
         "mecanico": {"name": "mecanico", "password": "1234"},
@@ -19,11 +19,9 @@ users = {
     }
 }
 
-names = [users["usernames"][u]["name"] for u in users["usernames"]]
-usernames = list(users["usernames"].keys())
-passwords = [users["usernames"][u]["password"] for u in users["usernames"]]
-
-authenticator = stauth.Authenticate(names, usernames, passwords, "app", "abcdef", cookie_expiry_days=1)
+authenticator = stauth.Authenticate(
+    credentials, "app_cookie", "abcdef", cookie_expiry_days=1
+)
 name, authentication_status, username = authenticator.login("Iniciar sesión", "main")
 
 if authentication_status:
@@ -63,7 +61,7 @@ if authentication_status:
             nuevo_id = len(data) + 1 if not data.empty else 1
             nueva_fila = [
                 nuevo_id, datetime.now().strftime("%Y-%m-%d"), username, cliente, dni_ruc, direccion, telefono,
-                correo, placa, marca, modelo, color, km, "", "", "", "", "", "", "", "", "", "", "",
+                correo, placa, marca, modelo, color, km, "", "", "", "", "", "", "", "", "", "",
                 "", "", "", "", "", "", "", "", "", ""
             ]
             sheet.append_row(nueva_fila)
@@ -103,7 +101,6 @@ if authentication_status:
 
     # --- SUPERVISOR ---
     elif st.session_state.rol == "supervisor":
-        import math
         st.header("Aprobación y Generación de PDF")
         pendientes = data[(data["Diagnóstico"] != "") & (data["Estado"] == "")]
         if pendientes.empty:
