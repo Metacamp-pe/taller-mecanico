@@ -32,11 +32,11 @@ if "rol" in st.session_state:
     client = gspread.authorize(credentials)
 
     # Base principal
-    sheet = client.open_by_key("1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE").worksheet("formulario_registro")
+    sheet = client.open_by_key("1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE").worksheet("Sheet1")
     data = pd.DataFrame(sheet.get_all_records())
 
     # Inventario
-    sheet_inventario = client.open_by_key("1-8VG4ICQ-RtN43Xn4PNtDq8fQsCmffUjFXrXkUzfbps").worksheet("inventario_prueba")
+    sheet_inventario = client.open_by_key("1-8VG4ICQ-RtN43Xn4PNtDq8fQsCmffUjFXrXkUzfbps").worksheet("Hoja1")
     data_inv = pd.DataFrame(sheet_inventario.get_all_records())
     lubricantes_predef = ["ACEITE DE MOTOR SAE 15W40 (LT)", "REFRIGERANTE", "LÍQUIDO DE FRENOS"]
 
