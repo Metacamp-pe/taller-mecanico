@@ -59,7 +59,7 @@ lubricantes_predef = [
 ]
 
 # --- FORMULARIO SUPERVISOR ---
-elif st.session_state.rol == "supervisor":
+if st.session_state.rol == "supervisor":
     st.header("Aprobación y Generación de PDF")
     pendientes = data[(data["Diagnóstico"] != "") & (data["Estado"] == "")]
     if pendientes.empty:
