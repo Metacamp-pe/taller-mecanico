@@ -30,14 +30,18 @@ if "rol" in st.session_state:
         st.rerun()
 
     # --- Conexión a Google Sheets ---
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    credentials_info = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
-    credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_info, scope)
-    client = gspread.authorize(credentials)
+    try:
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        credentials_info = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
+        credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_info, scope)
+        client = gspread.authorize(credentials)
 
-    # Base principal
-    sheet = client.open_by_key("1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE").worksheet("Sheet1")
-    data = pd.DataFrame(sheet.get_all_records())
+        # Conectarse a la hoja Sheet1 del archivo
+        sheet = client.open_by_key("1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE").worksheet("Sheet1")
+        data = pd.DataFrame(sheet.get_all_records())
+    except Exception as e:
+        st.error("❌ Error accediendo a la hoja de Google Sheets. Revisa si el archivo existe, el ID es correcto y tienes acceso.")
+        st.stop()
 
     # --- RECEPCIONISTA ---
     if st.session_state.rol == "recepcion":
