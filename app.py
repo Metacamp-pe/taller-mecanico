@@ -10,20 +10,24 @@ from datetime import datetime
 st.set_page_config(page_title="App de Taller Vehicular", layout="wide")
 
 # --- Login simplificado ---
-st.title("Iniciar sesión")
-rol = st.selectbox("Selecciona tu perfil", ["", "recepcion", "mecanico", "supervisor"])
-password = st.text_input("Contraseña", type="password")
+if "rol" not in st.session_state:
+    st.title("Iniciar sesión")
+    rol = st.selectbox("Selecciona tu perfil", ["", "recepcion", "mecanico", "supervisor"])
+    password = st.text_input("Contraseña", type="password")
 
-if st.button("Entrar"):
-    if password == "1234" and rol in ["recepcion", "mecanico", "supervisor"]:
-        st.session_state.rol = rol
-        st.rerun()
-    else:
-        st.error("Usuario o contraseña incorrecta")
+    if st.button("Entrar"):
+        if password == "1234" and rol in ["recepcion", "mecanico", "supervisor"]:
+            st.session_state.rol = rol
+            st.rerun()
+        else:
+            st.error("Usuario o contraseña incorrecta")
 
 # --- Si ya ha iniciado sesión ---
 if "rol" in st.session_state:
-    st.success(f"Has iniciado sesión como: {st.session_state.rol.capitalize()}")
+    st.sidebar.success(f"Sesión iniciada como: {st.session_state.rol}")
+    if st.sidebar.button("Cerrar sesión"):
+        del st.session_state.rol
+        st.rerun()
 
     # --- Conexión a Google Sheets ---
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -32,11 +36,11 @@ if "rol" in st.session_state:
     client = gspread.authorize(credentials)
 
     # Base principal
-    sheet = client.open_by_key("1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE").worksheet("Sheet1")
+    sheet = client.open_by_key("1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE").sheet1
     data = pd.DataFrame(sheet.get_all_records())
 
     # Inventario
-    sheet_inventario = client.open_by_key("1-8VG4ICQ-RtN43Xn4PNtDq8fQsCmffUjFXrXkUzfbps").worksheet("Hoja1")
+    sheet_inventario = client.open_by_key("1-8VG4ICQ-RtN43Xn4PNtDq8fQsCmffUjFXrXkUzfbps").worksheet("inventario_prueba")
     data_inv = pd.DataFrame(sheet_inventario.get_all_records())
     lubricantes_predef = ["ACEITE DE MOTOR SAE 15W40 (LT)", "REFRIGERANTE", "LÍQUIDO DE FRENOS"]
 
@@ -123,5 +127,3 @@ if "rol" in st.session_state:
                 st.success("✅ Ticket cerrado correctamente.")
                 st.rerun()
 
-else:
-    st.info("Por favor, inicia sesión para usar la aplicación.")
