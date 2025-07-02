@@ -142,7 +142,8 @@ if "rol" in st.session_state:
                 pdf.cell(0, 10, f"Estado final: {estado}", ln=True)
 
                 pdf_output = BytesIO()
-                pdf.output(pdf_output, 'F')
+                pdf_bytes = pdf.output(dest='S').encode('latin-1')  # Genera el PDF como string y lo codifica
+                pdf_output.write(pdf_bytes)
                 pdf_output.seek(0)
 
                 st.download_button(
@@ -150,7 +151,7 @@ if "rol" in st.session_state:
                     data=pdf_output,
                     file_name=f"ticket_{ticket['Placa']}.pdf",
                     mime="application/pdf"
-    )
+                )
 
 else:
     st.info("Por favor, inicia sesión para usar la aplicación.")
