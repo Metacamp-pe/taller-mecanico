@@ -29,7 +29,7 @@ if not st.session_state.auth_status:
             st.session_state.auth_status = True
             st.session_state.rol = usuario
             st.success("Inicio de sesión exitoso 🎉")
-            st.experimental_rerun()
+            st.rerun() 
         else:
             st.error("Usuario o contraseña incorrectos.")
     st.stop()
