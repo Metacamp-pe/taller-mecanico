@@ -6,53 +6,38 @@ from fpdf import FPDF
 from io import BytesIO
 import json
 from datetime import datetime
-import streamlit_authenticator as stauth
 
 st.set_page_config(page_title="App de Taller Vehicular", layout="wide")
 
-# --- Autenticación con config ---
-credentials = {
-    "usernames": {
-        "recepcion": {
-            "name": "Recepcionista",
-            "password": "1234"
-        },
-        "mecanico": {
-            "name": "Mecánico",
-            "password": "1234"
-        },
-        "supervisor": {
-            "name": "Supervisor",
-            "password": "1234"
-        }
-    }
-}
+# --- Login simplificado ---
+st.title("Iniciar sesión")
+rol = st.selectbox("Selecciona tu perfil", ["", "recepcion", "mecanico", "supervisor"])
+password = st.text_input("Contraseña", type="password")
 
-authenticator = stauth.Authenticate(
-    credentials,
-    "app_cookie", "abcdef",
-    cookie_expiry_days=1
-)
+if st.button("Entrar"):
+    if password == "1234" and rol in ["recepcion", "mecanico", "supervisor"]:
+        st.session_state.rol = rol
+        st.experimental_rerun()
+    else:
+        st.error("Usuario o contraseña incorrecta")
 
-name, authentication_status, username = authenticator.login("Iniciar sesión", "main")
+# --- Si ya ha iniciado sesión ---
+if "rol" in st.session_state:
+    st.success(f"Has iniciado sesión como: {st.session_state.rol.capitalize()}")
 
-if authentication_status:
-    st.session_state.rol = username
-
-    # Conexión con Google Sheets
+    # --- Conexión a Google Sheets ---
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     credentials_info = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
     credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_info, scope)
     client = gspread.authorize(credentials)
 
-    # Hoja de registros
+    # Base principal
     sheet = client.open_by_key("1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE").sheet1
     data = pd.DataFrame(sheet.get_all_records())
 
-    # Hoja de inventario
+    # Inventario
     sheet_inventario = client.open_by_key("1-8VG4ICQ-RtN43Xn4PNtDq8fQsCmffUjFXrXkUzfbps").worksheet("inventario_prueba")
     data_inv = pd.DataFrame(sheet_inventario.get_all_records())
-
     lubricantes_predef = ["ACEITE DE MOTOR SAE 15W40 (LT)", "REFRIGERANTE", "LÍQUIDO DE FRENOS"]
 
     # --- RECEPCIONISTA ---
@@ -74,7 +59,7 @@ if authentication_status:
         if enviado:
             nuevo_id = len(data) + 1 if not data.empty else 1
             nueva_fila = [
-                nuevo_id, datetime.now().strftime("%Y-%m-%d"), username, cliente, dni_ruc, direccion, telefono,
+                nuevo_id, datetime.now().strftime("%Y-%m-%d"), "recepcion", cliente, dni_ruc, direccion, telefono,
                 correo, placa, marca, modelo, color, km, "", "", "", "", "", "", "", "", "", "",
                 "", "", "", "", "", "", "", "", "", ""
             ]
@@ -109,14 +94,14 @@ if authentication_status:
                 sheet.update_cell(idx, data.columns.get_loc("MO_Cantidad") + 1, mo_cant)
                 sheet.update_cell(idx, data.columns.get_loc("MO_Precio_Unit") + 1, mo_precio)
                 sheet.update_cell(idx, data.columns.get_loc("MO_Precio_Total") + 1, mo_cant * mo_precio)
-                sheet.update_cell(idx, data.columns.get_loc("Mecánico") + 1, username)
+                sheet.update_cell(idx, data.columns.get_loc("Mecánico") + 1, "mecanico")
                 st.success("✅ Diagnóstico guardado correctamente.")
                 st.experimental_rerun()
 
-    # --- SUPERVISOR ---
+    # --- SUPERVISOR (en construcción) ---
     elif st.session_state.rol == "supervisor":
         st.header("Aprobación y Generación de PDF")
-        st.info("🚧 Sección en construcción. Aquí irá el flujo del supervisor.")
+        st.info("🚧 Módulo del supervisor en desarrollo...")
 
 else:
-    st.warning("Por favor, inicia sesión para acceder a la app.")
+    st.info("Por favor, inicia sesión para usar la aplicación.")
