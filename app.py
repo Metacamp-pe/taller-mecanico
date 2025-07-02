@@ -5,19 +5,33 @@ from oauth2client.service_account import ServiceAccountCredentials
 from fpdf import FPDF
 from io import BytesIO
 import json
-import streamlit_authenticator as stauth
 from datetime import datetime
+import streamlit_authenticator as stauth
 
 st.set_page_config(page_title="App de Taller Vehicular", layout="wide")
 
-# --- Autenticación de usuarios ---
-names = ["Recepcionista", "Mecánico", "Supervisor"]
-usernames = ["recepcion", "mecanico", "supervisor"]
-passwords = ["1234", "1234", "1234"]
+# --- Autenticación con config ---
+credentials = {
+    "usernames": {
+        "recepcion": {
+            "name": "Recepcionista",
+            "password": "1234"
+        },
+        "mecanico": {
+            "name": "Mecánico",
+            "password": "1234"
+        },
+        "supervisor": {
+            "name": "Supervisor",
+            "password": "1234"
+        }
+    }
+}
 
 authenticator = stauth.Authenticate(
-    names, usernames, passwords,
-    "app_cookie", "abcdef", cookie_expiry_days=1
+    credentials,
+    "app_cookie", "abcdef",
+    cookie_expiry_days=1
 )
 
 name, authentication_status, username = authenticator.login("Iniciar sesión", "main")
@@ -25,21 +39,23 @@ name, authentication_status, username = authenticator.login("Iniciar sesión", "
 if authentication_status:
     st.session_state.rol = username
 
-    # --- Conexión con Google Sheets ---
+    # Conexión con Google Sheets
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     credentials_info = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
     credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_info, scope)
     client = gspread.authorize(credentials)
 
+    # Hoja de registros
     sheet = client.open_by_key("1279gxeATNQw5omA6RwYH8pIS-uFu8Yagy0t4frQA0uE").sheet1
     data = pd.DataFrame(sheet.get_all_records())
 
+    # Hoja de inventario
     sheet_inventario = client.open_by_key("1-8VG4ICQ-RtN43Xn4PNtDq8fQsCmffUjFXrXkUzfbps").worksheet("inventario_prueba")
     data_inv = pd.DataFrame(sheet_inventario.get_all_records())
 
     lubricantes_predef = ["ACEITE DE MOTOR SAE 15W40 (LT)", "REFRIGERANTE", "LÍQUIDO DE FRENOS"]
 
-    # --- RECEPCION ---
+    # --- RECEPCIONISTA ---
     if st.session_state.rol == "recepcion":
         st.header("Registro de Ingreso del Vehículo")
         with st.form("recepcion_form"):
@@ -100,7 +116,7 @@ if authentication_status:
     # --- SUPERVISOR ---
     elif st.session_state.rol == "supervisor":
         st.header("Aprobación y Generación de PDF")
-        # ... (el resto del bloque de código para supervisor permanece igual)
+        st.info("🚧 Sección en construcción. Aquí irá el flujo del supervisor.")
 
 else:
     st.warning("Por favor, inicia sesión para acceder a la app.")
