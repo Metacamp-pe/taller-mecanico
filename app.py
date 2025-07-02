@@ -17,7 +17,7 @@ password = st.text_input("Contraseña", type="password")
 if st.button("Entrar"):
     if password == "1234" and rol in ["recepcion", "mecanico", "supervisor"]:
         st.session_state.rol = rol
-        st.experimental_rerun()
+        st.rerun()
     else:
         st.error("Usuario o contraseña incorrecta")
 
