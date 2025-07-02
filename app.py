@@ -143,14 +143,14 @@ if "rol" in st.session_state:
 
                 pdf_output = BytesIO()
                 pdf.output(pdf_output)
-                pdf_output.seek(0)  # ✅ NECESARIO para que funcione el botón de descarga
+                pdf_output.seek(0)  # ← Esto es clave para que funcione correctamente
 
                 st.success("✅ Ticket cerrado correctamente.")
                 st.download_button(
-                label="📄 Descargar PDF del Ticket",
-                data=pdf_output.getvalue(),
-                file_name=f"ticket_{ticket['Placa']}.pdf",
-                mime="application/pdf"
+                    label="📄 Descargar PDF del Ticket",
+                    data=pdf_output,
+                    file_name=f"ticket_{ticket['Placa']}.pdf",
+                    mime="application/pdf"
                 )
 
 else:
